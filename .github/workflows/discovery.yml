@@ -8,7 +8,7 @@ on:
       require_pypi:
         description: Fail if the public PyPI package is still pending
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -30,7 +30,7 @@ jobs:
           python-version: '3.12'
       - name: Check public metadata and unpaid challenges only
         env:
-          REQUIRE_PYPI: ${{ inputs.require_pypi || false }}
+          REQUIRE_PYPI: ${{ github.event_name == 'schedule' || inputs.require_pypi }}
         run: |
           args=()
           if [ "$REQUIRE_PYPI" = "true" ]; then args+=(--require-pypi); fi
@@ -42,3 +42,18 @@ jobs:
           path: discovery.json
           if-no-files-found: error
           retention-days: 14
+
+  installed-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the actual PyPI distribution
+        run: python -m pip install --index-url https://pypi.org/simple hybriqx-workout-assistant
+      - name: Run installed client offline without a checkout or wallet
+        run: |
+          cd "$RUNNER_TEMP"
+          hybriqx-workout-assistant --demo
+          python -m hybriqx_workout_assistant --demo

@@ -500,6 +500,11 @@ def test_workflows_release_permissions_and_offline_validation():
         assert "python -m pytest -q" in workflow
     nightly = (ROOT / ".github" / "workflows" / "discovery.yml").read_text()
     assert "'53 3 * * *'" in nightly and "workflow_dispatch:" in nightly
-    assert "require_pypi:" in nightly and "default: false" in nightly
-    assert "pip install" not in nightly and "id-token:" not in nightly
+    assert "require_pypi:" in nightly and "default: true" in nightly
+    assert "github.event_name == 'schedule' || inputs.require_pypi" in nightly
+    diagnostics, installed = nightly.split("\n  installed-client:\n")
+    assert "pip install" not in diagnostics and "id-token:" not in nightly
+    assert "actions/checkout" not in installed
+    assert "pip install --index-url https://pypi.org/simple hybriqx-workout-assistant" in installed
+    assert 'cd "$RUNNER_TEMP"' in installed and "--demo" in installed
     assert "if: always()" in nightly and "actions/upload-artifact" in nightly

@@ -9,7 +9,12 @@ efficacy or latency. Consult an appropriately qualified professional when needed
 Install (Python 3.12+)
 ------------------------
 
-PyPI publication is pending authorization. Install from the public repository::
+Install the published MIT package from PyPI::
+
+    python -m pip install hybriqx-workout-assistant
+    python -m pip install "hybriqx-workout-assistant[langchain,openai]"
+
+Or install from the public repository::
 
     python -m pip install "git+https://github.com/LKennedyShare/hybriqx-workout-assistant.git"
 
@@ -224,4 +229,4 @@ tested live::
     python -m build
     python -m twine check dist\*
 
-MIT licensed, copyright 2026 LKennedyShare. No claim of PyPI publication.
+MIT licensed, copyright 2026 LKennedyShare.
