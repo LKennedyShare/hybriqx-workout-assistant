@@ -1,0 +1,66 @@
+name: Publish release to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pypi-${{ github.repository }}-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'LKennedyShare/hybriqx-workout-assistant' && github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate release identity
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: python scripts/check_release.py --tag "$RELEASE_TAG"
+      - run: python -m pip install --index-url https://pypi.org/simple ".[test,release,langchain,openai]"
+      - run: python -m pytest -q
+      - run: python examples/framework_demo.py --framework langchain
+      - run: python examples/framework_demo.py --framework openai
+      - run: python -m build
+      - run: python -m twine check --strict dist/*
+      - name: Test installed wheel offline outside checkout
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/../wheel-smoke"
+          "$GITHUB_WORKSPACE/../wheel-smoke/bin/python" -m pip install --index-url https://pypi.org/simple dist/*.whl
+          cd "$GITHUB_WORKSPACE/../wheel-smoke"
+          bin/hybriqx-workout-assistant --demo
+          bin/python -m hybriqx_workout_assistant --demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-distributions
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    if: github.repository == 'LKennedyShare/hybriqx-workout-assistant' && github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-distributions
+          path: dist
+      - name: Publish using PyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1

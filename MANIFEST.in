@@ -1,0 +1,6 @@
+include README.rst LICENSE .gitignore
+recursive-include examples *.py *.json
+recursive-include tests *.py
+global-exclude __pycache__ *.py[cod]
+prune .venv
+prune .pytest_cache

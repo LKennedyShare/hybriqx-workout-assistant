@@ -1,0 +1,44 @@
+name: Unpaid public discovery diagnostics
+
+on:
+  schedule:
+    - cron: '53 3 * * *'
+  workflow_dispatch:
+    inputs:
+      require_pypi:
+        description: Fail if the public PyPI package is still pending
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unpaid-discovery
+  cancel-in-progress: false
+
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check public metadata and unpaid challenges only
+        env:
+          REQUIRE_PYPI: ${{ inputs.require_pypi || false }}
+        run: |
+          args=()
+          if [ "$REQUIRE_PYPI" = "true" ]; then args+=(--require-pypi); fi
+          python scripts/check_discovery.py "${args[@]}" --output discovery.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unpaid-discovery
+          path: discovery.json
+          if-no-files-found: error
+          retention-days: 14
